@@ -221,3 +221,6 @@ __marimo__/
 
 # Generated experiment and demo outputs
 results/
+
+.DS_Store
+.vscode/
