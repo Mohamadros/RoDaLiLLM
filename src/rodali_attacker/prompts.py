@@ -9,6 +9,7 @@ from typing import Any
 PROMPT_VERSIONS = {
     "simple": "simple-v1",
     "rule_guided": "rule-guided-v1",
+    "cd_benchmark": "cd-benchmark-v1",
 }
 
 _SIMPLE = """Decide whether Product A and Product B describe the exact same real-world product.
@@ -22,6 +23,12 @@ Rules:
 - Missing attributes alone are not proof of a mismatch.
 - Conflicting identifying attributes are evidence of a non-match.
 - A match requires positive evidence of equivalence.
+
+Return exactly MATCH or NON_MATCH. Do not add any other text."""
+
+_CD_BENCHMARK = """Decide whether CD Record A and CD Record B are duplicate catalog records for the same underlying CD entity in the FreeDB CD benchmark.
+
+Use all available metadata, especially artist, title, track listing, and year. Metadata may contain spelling mistakes, inconsistent capitalization or punctuation, mojibake, missing values, category or genre disagreements, and minor track-title variations. Those data-quality differences alone do not make two records different. Conversely, similar artist or title text alone is not enough: different albums, discs, editions, or materially different track lists are non-duplicates. A duplicate decision requires positive evidence that both records describe the same CD entity.
 
 Return exactly MATCH or NON_MATCH. Do not add any other text."""
 
@@ -40,10 +47,14 @@ def build_prompt(
     if strategy not in PROMPT_VERSIONS:
         choices = ", ".join(sorted(PROMPT_VERSIONS))
         raise ValueError(f"Unknown prompt strategy {strategy!r}; choose from {choices}")
-    instructions = _SIMPLE if strategy == "simple" else _RULE_GUIDED
+    instructions = {
+        "simple": _SIMPLE,
+        "rule_guided": _RULE_GUIDED,
+        "cd_benchmark": _CD_BENCHMARK,
+    }[strategy]
     prompt = (
-        f"{instructions}\n\nProduct A:\n{serialize_record(record_a)}"
-        f"\n\nProduct B:\n{serialize_record(record_b)}"
+        f"{instructions}\n\nRecord A:\n{serialize_record(record_a)}"
+        f"\n\nRecord B:\n{serialize_record(record_b)}"
     )
     return prompt, PROMPT_VERSIONS[strategy]
 

@@ -102,6 +102,54 @@ test real LLM behavior.
 Use `matcher.save_results(results, "results/predictions.jsonl")` (or `.csv`) for
 direct prediction export. Stable IDs are hashes of complete canonicalized records.
 
+## HPI CD Dataset 1 baseline
+
+Download the original CD TSV and updated DPL/NDPL pair TSVs from HPI, with
+SHA-256 verification:
+
+```bash
+python scripts/download_cd_dataset.py
+```
+
+The observed source schema is `artist, category, genre, title, tracks, year, id`.
+Both pair files contain `id1, id2`; these values join to the record `id` column,
+not to row numbers. The loader rejects changed headers, duplicate record IDs,
+and unresolved pair IDs. IDs and labels are retained for evaluation but excluded
+from prompts. Empty trailing track slots are removed when `tracks` is converted
+from its pipe-delimited source value to a JSON list.
+
+Run a free, deterministic pipeline check on 20 duplicate and 20 non-duplicate
+pairs:
+
+```bash
+rodali-cd-baseline \
+  --sample-per-class 20 \
+  --seed 42 \
+  --output results/cd_baseline_mock_20x20.csv
+```
+
+The mock intentionally predicts `NON_MATCH` for every pair. Its metrics verify
+loading, per-pair prompting, persistence, and metric calculation only.
+
+After configuring `OPENAI_API_KEY`, the first real sampled experiment is:
+
+```bash
+rodali-cd-baseline \
+  --live \
+  --model gpt-4.1-mini \
+  --sample-per-class 20 \
+  --seed 42 \
+  --output results/cd_baseline_gpt-4.1-mini_20x20.csv
+```
+
+`--live` is the only mode that issues paid API calls. Omit
+`--sample-per-class` to evaluate all 300 positive and 3,000 negative pairs. Each
+pair is sent in its own request using `cd-benchmark-v1`. The CSV stores source
+IDs, ground truth, prediction, model, prompt version, and errors. A sibling
+`.metrics.json` stores accuracy, precision, recall, F1, false positives, false
+negatives, and failure counts. Metrics exclude failed responses and report their
+count separately.
+
 ## Known limitations
 
 - Identity protection is conservative lexical validation, not semantic proof.

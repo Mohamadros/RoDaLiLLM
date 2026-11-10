@@ -221,3 +221,6 @@ __marimo__/
 
 # Generated experiment and demo outputs
 results/
+
+# Public benchmark files downloaded by scripts/download_cd_dataset.py
+data/raw/*.tsv
